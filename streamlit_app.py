@@ -6,9 +6,19 @@ import streamlit as st
 os.environ["GOOGLE_API_KEY"] = "AIzaSyBYESMI0LTsnVgSWVoQ2LYQ28aJ22iXM7w"  # Replace with your actual API key
 genai.configure(api_key=os.environ["GOOGLE_API_KEY"])
 
-# Initialize session state for conversation history
+# Initialize session state for conversation history and additional context
 if 'conversation_history' not in st.session_state:
     st.session_state.conversation_history = []
+if 'additional_context' not in st.session_state:
+    st.session_state.additional_context = {
+        "user_preferences": {
+            "language": "english",
+            "tone": "informative",
+            "level_of_formality": "casual"
+        },
+        "recent_topics": [],
+        "external_data": {}
+    }
 
 max_history_length = 100
 
@@ -48,17 +58,34 @@ def txt_gpt(user_input):
 def main():
     st.title("Pandora")
 
-    user_input = st.text_input("Enter your message:")
-    if st.button("Send"):
-        if user_input.lower() == 'exit':
-            st.stop()
-        elif user_input.lower() == 'reset':
-            st.session_state.conversation_history = []  # Reset conversation history
-            st.info("Conversation history has been reset.")
-        else:
-            response = txt_gpt(user_input)
-            st.write("Pandora:")
-            st.info(response)
+    # Create a container for the conversation history
+    conversation_history_container = st.container()
+
+    # Display the conversation history
+    def display_conversation_history():
+        for message in st.session_state.conversation_history:
+            if message.startswith("Pandora:"):
+                conversation_history_container.markdown(f"**Pandora:** {message[7:]}")
+            else:
+                conversation_history_container.markdown(f"**You:** {message}")
+
+    display_conversation_history()
+
+    # Create a container for the user input field
+    user_input_container = st.container()
+
+    with user_input_container:
+        # Define handle_keypress function here
+        def on_key_press():
+            if st.session_state["key_pressed"] == "Enter":
+                if user_input.lower() == 'exit':
+                    st.stop()
+                # ... (rest of your handle_keypress logic)
+            st.session_state["key_pressed"] = None  # Reset key press state
+
+        st.on_key_press(on_key_press)
+        # Use handle_keypress function here
+        user_input = st.text_input("Enter your message:", on_keypress=handle_keypress)
 
 if __name__ == "__main__":
     main()
